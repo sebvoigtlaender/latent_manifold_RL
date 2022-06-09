@@ -137,34 +137,68 @@ def sync_grad(t: int, t_sync: int, model: pt.nn.Module, model_target: pt.nn.Modu
         model_target.load_state_dict(model.state_dict())
 
 
-class Replay_Buffer():
+class ReplayBuffer():
 
-    def __init__(self, u_size: int, x_size: int, capacity: int = int(1e3)) -> None:
+    def __init__(self,
+                 config: MutableMapping[str, Any],
+                 capacity: int = int(1e6)) -> None:
+        self.batch_size = config.batch_size
         self.capacity = capacity
-        self.idx = 0
-        self.size = 0
-        self.u = pt.zeros(capacity, u_size)
-        self.x = pt.zeros(capacity, x_size)
-        self.d_loss = pt.zeros(capacity, 1)
-        self.dx = pt.zeros(capacity, x_size)
-        self.done = pt.zeros(capacity, 1)
+        self.current_size = 0
+        self.device = config.device
 
-    def store(self, u, x, d_loss, dx, done):
-        self.u[self.idx] = u
-        self.x[self.idx] = x
-        self.d_loss[self.idx] = d_loss
-        self.dx[self.idx] = dx
-        self.done[self.idx] = done
-        self.idx = (self.idx + 1) % self.capacity
-        self.size = min(self.size + 1, self.capacity)
+        self.u_buffer = np.zeros(capacity, config.n_u)
+        self.state_buffer = np.zeros(capacity, config.n_state_neurons)
+        self.loss_buffer = np.zeros(capacity, 1)
+        self.action_buffer = np.zeros(capacity, config.n_state_neurons)
+        self.done_buffer = np.zeros(capacity, 1)
 
-    def spl(self, batch_size):
-        idcs = rnd.randint(0, self.size, size=batch_size)
-        u = pt.FloatTensor(self.u[idcs]).to(device)
-        x = pt.FloatTensor(self.x[idcs]).to(device)
-        d_loss = pt.FloatTensor(self.d_loss[idcs]).to(device)
-        dx = pt.FloatTensor(self.dx[idcs]).to(device)
-        done = pt.FloatTensor(self.done[idcs]).to(device)
-        return u, x, d_loss, dx, done
+    def store(self,
+              u: TensorType, 
+              state: TensorType, 
+              loss: Union[int, TensorType], 
+              action: Union[int, TensorType], 
+              done: bool) -> None:
+        self.u_buffer[self.current_size] = u
+        self.state_buffer[self.current_size] = state
+        self.loss_buffer[self.current_size] = loss
+        self.action_buffer[self.current_size] = action
+        self.done_buffer[self.current_size] = done
 
-# epsilon = lambda t: 0.05 + (0.05 - 1) * np.exp(-t / decay)
+        self.current_size = (self.current_size + 1) % self.capacity
+
+    def sample(self) -> Tuple[TensorType, TensorType, TensorType, TensorType, TensorType]:
+        idcs = rnd.randint(0, self.current_size, size=self.batch_size)
+        u = pt.FloatTensor(self.u_buffer[idcs]).to(self.device)
+        state = pt.FloatTensor(self.state_buffer[idcs]).to(self.device)
+        loss = pt.FloatTensor(self.loss_buffer[idcs]).to(self.device)
+        action = pt.FloatTensor(self.action_buffer[idcs]).to(self.device)
+        done = pt.FloatTensor(self.done_buffer[idcs]).to(self.device)
+        return u, x, loss, action, done
+
+    def __getitem__(self,
+                    i: Union[int, List[int]]) -> Tuple[TensorType, TensorType, TensorType, TensorType, TensorType]:
+        assert i < self.current_size
+        u = self.u_buffer[i]
+        state = self.state_buffer[i]
+        loss = self.loss_buffer[i]
+        action = self.action_buffer[i]
+        done = self.done_buffer[i]
+        return u, x, loss, action, done
+
+    def __setitem__(self, 
+                    i: Union[int, List[int]], 
+                    u: TensorType, 
+                    state: TensorType, 
+                    loss: Union[int, TensorType], 
+                    action: Union[int, TensorType], 
+                    done: bool) -> None:
+        assert i < self.capacity
+        self.u_buffer[i] = u
+        self.state_buffer[i] = state
+        self.loss_buffer[i] = loss
+        self.action_buffer[i] = action
+        self.done_buffer[i] = done
+
+    def __len__(self) -> int:
+        return int(min(self.current_size + 1, self.capacity))
