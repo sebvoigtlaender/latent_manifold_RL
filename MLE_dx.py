@@ -8,16 +8,15 @@ import numpy.random as rnd
 import torch as pt
 import torch.nn as nn
 import torch.nn.functional as F
-from tqdm import tqdm
 
 from absl import logging
 
-from env import Maze
-from global_arguments import get_args
+from arguments import get_args
+from env import get_env_config, get_env, Toggle, Maze
 from helpers import get_p_action_target, value_act
-from model import ActorCritic, Reservoir
+from model import get_actor_critic_config, ActorCritic, Reservoir
 from optimizer import CoreOptimizer
-from utils import default_config, env_config, model_config, activation_fn, convert_to_tensor, join_tokens, TensorDict, TensorType 
+from utils import activation_fn, convert_to_tensor, join_tokens, TensorDict, TensorType 
 
 import matplotlib.pyplot as plt
 plt.style.use('seaborn')
@@ -29,39 +28,34 @@ logging.set_verbosity(logging.INFO)
 
 device = pt.device('cuda' if pt.cuda.is_available() else 'cpu')
 args = get_args()
-args.grad = 'sparse'
-args.lr = 0.003
+args.env_id = 'square_full_access'
+args.lr = 0.001
 args.n_episodes = 50000
-
-config = default_config()
-env_config(args, config, 'square_with_walls')
-config.height = 5
-config.n_steps = 100
-env = Maze(config)
-model_config(args, config, env)
-config.k_B = 1.0
+args.stochastic = True
 
 
-config.stochastic = True
+env_config = get_env_config(args)
+actor_critic_config = get_actor_critic_config(args)
 
-logging.info(args)
-logging.info(config)
+logging.info(f'hyperp: {args}')
+logging.info(f'env_config: {env_config}')
+logging.info(f'actor_critic_config: {actor_critic_config}')
 
-actor_critic = ActorCritic(config).to(args.device)
-actor = actor_critic
-optimizer = CoreOptimizer(actor.actor.parameters(), lr=args.lr, args=args)
-actor.train()
+env = get_env(env_config)
+actor_critic = ActorCritic(actor_critic_config).to(args.device)
+optimizer = CoreOptimizer(actor_critic.actor.parameters(), lr=args.lr, args=args)
+actor_critic.train()
 
 u, done = env.reset()
 log_p_action_list = []
 p_total_path_list = []
 losses = []
 episode_return = 0
-print(actor.actor)
+
 for t in range(args.n_episodes):
 
     u = convert_to_tensor(u)
-    p_action, action = actor.act(u)
+    p_action, action = actor_critic.act(u)
     log_p_action_list.append(p_action.log_prob(action))
 
     u, reward, done = env.step(action)

@@ -9,12 +9,20 @@ import torch.optim as optim
 
 from absl import logging
 
-from utils import activation_fn, default_config, TensorDict, TensorType 
+from utils import activation_fn, TensorDict, TensorType 
 
 logging.set_verbosity(logging.INFO)
 
 
 class CoreOptimizer(pt.optim.Optimizer):
+
+    '''
+    Simple optimizer inherited from optimizer base class.
+    Accepts negative learning rate for gradient descent,
+    positive learning rates for gradient ascend.
+    During each gradient step the gradient and be scaled by
+    scaling_factor, as required for gradient discounting.
+    '''
 
     def __init__(self, parameters: Iterable,
                        lr: float,
@@ -30,7 +38,9 @@ class CoreOptimizer(pt.optim.Optimizer):
             self.args = args
         super(CoreOptimizer, self).__init__(parameters, defaults)
 
-    def step(self, scaling_factor: pt.float32 = None, closure: Optional[Callable] = None) -> None:
+    def step(self,
+             scaling_factor: pt.float32 = None,
+             closure: Optional[Callable] = None) -> None:
         '''Performs a single optimization step'''
         with pt.no_grad():
             loss = None
@@ -50,11 +60,13 @@ class CoreOptimizer(pt.optim.Optimizer):
                     d_p = d_p_list[i]
                     if scaling_factor is not None:
                         d_p.multiply_(scaling_factor) # in most cases this is loss.item()
-                    p.add_(d_p, alpha = lr)
+                    p.add_(d_p, alpha = lr) # lr can be positive or negative, depending on the desired gradient
                 for p in p_with_grad:
                     state = self.state[p]
 
-    def accumulate_grad(self, p_actions: TensorType, idx: TensorType) -> None:
+    def accumulate_grad(self,
+                        p_actions: TensorType,
+                        idx: TensorType) -> None:
         if self.args.grad == 'sparse':
             g_p_actions = pt.zeros(p_actions.shape).to(self.args.device)
             g_p_actions[idx] = 1 # in some cases idx is simply -1
@@ -65,7 +77,11 @@ class CoreOptimizer(pt.optim.Optimizer):
         
 
 class SwarmOptimizer(pt.optim.Optimizer):
-    '''this optimizer was taken from the evolutionary approach policy swarm, it is different from the optimizers below'''
+
+    '''
+    Evolution optimizer, perturbs parameters at each gradient step by gaussian noise
+    '''
+
     def __init__(self, parameters: Iterable,
                        lr: float,
                        args: Optional[MutableMapping[str, Any]] = None) -> None:
@@ -74,7 +90,9 @@ class SwarmOptimizer(pt.optim.Optimizer):
             self.args = args
         super(SwarmOptimizer, self).__init__(parameters, defaults)
 
-    def step(self, fitness: pt.float32 = None, closure: Optional[Callable] = None) -> None:
+    def step(self,
+             fitness: pt.float32 = None,
+             closure: Optional[Callable] = None) -> None:
         '''Performs a single optimization step'''
         if not fitness:
             raise ValueError(f'expected an argument fitness, got None instead')

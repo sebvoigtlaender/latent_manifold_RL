@@ -1,5 +1,4 @@
-# model skeleton
-# import section
+import argparse
 from typing import Any, Mapping, MutableMapping, Optional, Tuple, Union
 
 import torch
@@ -9,20 +8,62 @@ from torch.distributions import Categorical
 
 from absl import logging
 
-from utils import activation_fn, default_config, TensorDict, TensorType 
+from utils import activation_fn, TensorDict, TensorType 
 
 logging.set_verbosity(logging.INFO)
 
 
+def get_actor_critic_config(args: MutableMapping[str, Any]) -> Mapping[str, Any]:
+
+    '''
+    Configuration for actor critic.
+    config.discrete: action continuous or discrete
+    config.k_B: distribution temperature for sampling
+    config.stochastic: action sampled stochastically or greedily
+    '''
+
+    parser = argparse.ArgumentParser()
+    config = parser.parse_args(args=[])
+
+    config.batch_size = args.batch_size
+    config.device = args.device
+    config.discrete = True
+    config.k_B = args.k_B
+    config.stochastic = args.stochastic
+
+    config.act_fn = args.act_fn
+    config.n_actions = args.n_actions
+    config.n_hidden_neurons = args.n_hidden_neurons
+    config.n_layers = args.n_layers
+    config.n_output_neurons = args.n_actions
+
+    if args.env_id == 'toggle':
+        config.n_state_neurons = args.d_cue
+        config.n_u = args.d_cue
+    elif args.env_id == 'square_full_access':
+        config.n_state_neurons = 0
+        config.n_u = int(args.height**2)
+    elif args.env_id == 'square_with_walls':
+        config.n_state_neurons = 0
+        config.n_u = int(args.height**2)
+    config.n_input_neurons = config.n_u + config.n_state_neurons
+
+    return config
+
+
 class Core(pt.nn.Module):
+
+    '''
+    Basic multilayer perceptron
+    '''
 
     def __init__(self,
                  n_input_neurons: int,
                  n_hidden_neurons: int,
                  n_output_neurons: int, 
                  n_layers: int,
-                 act_fn: str = 'relu',
-                 bias: bool = True) -> None:
+                 act_fn: Optional[str] = 'relu',
+                 bias: Optional[bool] = True) -> None:
         super().__init__()
         self.act_fn = act_fn
         self.input_layer = pt.nn.Linear(n_input_neurons, n_hidden_neurons, bias = bias)
@@ -40,6 +81,10 @@ class Core(pt.nn.Module):
 
 
 class ActorCritic(pt.nn.Module):
+
+    '''
+    Configurable actor critic with fully connected core
+    '''
 
     def __init__(self, config: MutableMapping[str, Any]) -> None:
         super().__init__()
@@ -88,23 +133,21 @@ class ActorCritic(pt.nn.Module):
 class Reservoir(pt.nn.Module):
     
     '''
-    Reservoir performs the state update. In the state transition contains the values dx by which to update the state x.
+    Reservoir performs the state update. The state transition dx updates the state x.
     If there is exactly one vector dx for each vector x in the batch, the update is simply act_fn(x + dx).
-    If this not the case, then either allocate a scalar dx to a scalar state, or allocate a scalar dx to a vector x at index idx -
+    If this not the case, then either 'allocate' a scalar dx to a scalar state, or 'allocate' a scalar dx to a vector x at index idx -
     in this case the indices range over the length of the vector x.
-    If the indices range over fixed transitions, no explicit dx is needed and idx collects the updates from a table of transitions.
+    If the indices range over fixed transitions, no explicit dx is needed and idx collects the updates from a user defined table of transitions.
     '''
 
     def __init__(self,
-                 args: MutableMapping[str, Any],
-                 config: MutableMapping[str, Any],
+                 config: Mapping[str, Any],
                  transition_table: Optional[TensorType] = None) -> None:
         super().__init__()
         
-        self.args = args
         self.config = config
 
-        self.batch_size = args.batch_size
+        self.batch_size = config.batch_size
         self.n_state_neurons = config.n_state_neurons
         self.n_actions = config.n_actions
         
@@ -144,5 +187,5 @@ class Reservoir(pt.nn.Module):
         return x, state_transition
 
     def clear(self) -> TensorType:
-        x = pt.zeros(self.batch_size, self.n_state_neurons).to(self.args.device)
+        x = pt.zeros(self.batch_size, self.n_state_neurons).to(self.config.device)
         return x

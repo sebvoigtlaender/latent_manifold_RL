@@ -9,50 +9,65 @@ import torch.nn.functional as F
 
 from absl import logging
 
-from global_arguments import get_args
-from utils import default_config, env_config, model_config, activation_fn, join_tokens, TensorDict, TensorType 
+from arguments import get_args
+from utils import activation_fn, join_tokens, TensorDict, TensorType 
 
 logging.set_verbosity(logging.INFO)
 
 
-
-def get_p_action_target(config: MutableMapping[str, Any],
+def get_p_action_target(args: MutableMapping[str, Any],
                         x: TensorType,
                         state_target: TensorType,
                         transition_table: TensorType) -> TensorType:
 
+    '''
+    If transition_table is given, calculate target for distribution over actions or state updates dx
+    '''
+
     with pt.no_grad(): 
         dx = pt.clamp(state_target - x, min=transition_table[0], max=transition_table[-1])
         target_idx = pt.where(transition_table == dx)[1]
-        p_action_target = pt.zeros(config.batch_size, config.n_actions).to(config.device)
-        p_action_target[range(config.batch_size), target_idx] = 1
+        p_action_target = pt.zeros(args.batch_size, args.n_actions).to(args.device)
+        p_action_target[range(args.batch_size), target_idx] = 1
         
     return p_action_target
 
-def value_act(config: MutableMapping[str, Any],
+def value_act(args: MutableMapping[str, Any],
           u: TensorType,
           x: TensorType, 
           state_target: TensorType,
           transition_table: TensorType,
           epsilon: int, 
-          mode: str = 'min') -> pt.LongTensor:    
+          mode: Optional[str] = 'min') -> pt.LongTensor:
+
+    '''
+    If transition_table is given, calculate target state update dx
+    based on the locally optimal transition as measured by state value
+    '''
+
     with pt.no_grad():
-        action_idx = pt.zeros(config.batch_size)
+        action_idx = pt.zeros(args.batch_size)
 
         dx = pt.clamp(state_target - x, min=transition_table[0], max=transition_table[-1])
         opt_idx = pt.where(transition_table == dx)[1] # locally optimal index
 
-        assert (x + transition_table).shape == (config.batch_size, config.n_actions)
-        x = join_tokens(u.expand((config.batch_size, config.n_actions)), (x + transition_table))
+        assert (x + transition_table).shape == (args.batch_size, args.n_actions)
+        x = join_tokens(u.expand((args.batch_size, args.n_actions)), (x + transition_table))
         values = actor_critic.state_value(x.view(*x.shape, 1))
         value_idx = pt.min(values, 1, False).indices # index chosen based on state value
 
-        non_opt_idx = rnd.rand(config.batch_size) > epsilon # mix indices based on proportion given by epsilon
+        non_opt_idx = rnd.rand(args.batch_size) > epsilon # mix indices based on proportion given by epsilon
         action_idx = opt_idx
         action_idx[non_opt_idx] = value_idx
+
     return action_idx
 
-def train_actor_critic(replay_buffer, args):
+def train_actor_critic(args: Mapping[str, Any], 
+                       replay_buffer: Any) -> None:
+
+    '''
+    Basic actor critic training algorithm
+    '''
 
     u, x, d_loss, dx, done = replay_buffer.spl(args.batch_size)
 

@@ -1,5 +1,5 @@
 # environments and signal generators
-# import section
+import argparse
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import numpy as np
@@ -11,14 +11,10 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 
-from global_arguments import get_args
-from utils import __add__, activation_fn, default_config, ListType, TensorDict, TensorType 
+from utils import __add__, ListType, TensorDict, TensorType 
+
 
 logging.set_verbosity(logging.INFO)
-
-device = pt.device('cuda' if pt.cuda.is_available() else 'cpu')
-args = get_args()
-args.device = device
 
 
 class ALE():
@@ -33,18 +29,70 @@ class ALE():
 # barcodes = np.stack([rnd.choice([-1, 1], self.d_cue) for i in range(self.n_codes)])
 
 
+def get_env_config(args: MutableMapping[str, Any]) -> Mapping[str, Any]:
+
+    '''set up immutable environment configuration'''
+    
+    parser = argparse.ArgumentParser()
+    config = parser.parse_args(args=[])
+
+    config.batch_order = 'time_first'
+    config.batch_size = args.batch_size
+    config.device = args.device
+
+    if not hasattr(args, 'env_id'):
+        logging.fatal('env_id must be specified')
+    else:
+        logging.info(f'environment = {args.env_id}')
+        config.env_id = args.env_id
+
+    if args.env_id == 'toggle':
+        config.d_cue = args.d_cue
+        config.len_cue_sequence = args.len_cue_sequence
+        config.n_cues = args.n_cues
+
+        config.n_actions = 3
+
+    elif args.env_id == 'square_full_access':
+        config.height = args.height
+        config.n_steps = args.n_steps
+
+        config.initial_idx = (0,)
+        config.n_actions = config.height**2
+
+    elif args.env_id == 'square_with_walls':
+        config.height = args.height
+        config.n_steps = args.n_steps
+
+        config.initial_idx = (0, 0)
+        config.n_actions = 4
+
+    args.n_actions = config.n_actions
+
+    return config
+
+
+def get_env(config: Mapping[str, Any]) -> Any:
+    if config.env_id == 'toggle':
+        return Toggle(config)
+    elif config.env_id == 'square_full_access':
+        return Maze(config)
+    elif config.env_id == 'square_with_walls':
+        return Maze(config)
+
+        
 class Toggle(gym.Env):
     '''
-    docstring
+    Toggle environment for basic internal state control tasks, inherits from gym environment
     '''
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, config: MutableMapping[str, Any]) -> None:
+    def __init__(self, config: Mapping[str, Any]) -> None:
 
         super().__init__()
         self.config = config
-        if config.env_name == 'toggle':
-            print(config.env_name)
+        if config.env_id == 'toggle':
+            print(config.env_id)
             self.action_space = spaces.Discrete(3)
             self.observation_space = spaces.Box(low=0.0,
                                                 high=1.0,
@@ -66,7 +114,7 @@ class Toggle(gym.Env):
 
     def _generate_cue(self) -> None:
 
-        if self.config.env_name == 'toggle':
+        if self.config.env_id == 'toggle':
             assert self.d_cue == 1
             idcs = [np.sort(rnd.choice(range(1, self.len_cue_sequence-1), self.n_cues, replace=0)) for i in range(self.batch_size)]
             idcs = np.stack(idcs)
@@ -77,7 +125,7 @@ class Toggle(gym.Env):
                 for (t0, t1) in list(zip(np.append(0, idcs[i]), np.append(idcs[i], self.len_cue_sequence)))[1::2]:
                     self.target[i, t0:t1] = 1.0
 
-        if self.config.env_name == '':
+        if self.config.env_id == '':
             code_idx = rnd.choice(range(self.n_codes), (self.batch_size, self.n_cues))
             spike_idx = np.zeros((self.batch_size, self.n_cues), dtype=int)
             for i in range(self.batch_size):
@@ -129,35 +177,21 @@ class Toggle(gym.Env):
         return self.cue_sequence, self.target, self.steps
 
 
-
-
-
-
-
-
-
-
-
-
-# config.initial_idx
-# config.height
-# transition_table
-
 class Maze(gym.Env):
     '''
-    docstring
+    Maze for basic spatial navigation tasks, inherits from gym environment
     '''
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, config: MutableMapping[str, Any], transition_table: List = None) -> None:
+    def __init__(self, config: Mapping[str, Any], transition_table: List = None) -> None:
 
         super().__init__()
         self.config = config
         self.n_steps = config.n_steps
 
-        if config.env_name == 'square_full_access':
+        if config.env_id == 'square_full_access':
             assert config.n_actions == config.height**2, ''
-            print(config.env_name)
+            print(config.env_id)
             self.action_space = spaces.Discrete(config.n_actions)
             self.observation_space = spaces.Box(low=0.0,
                                                 high=1.0,
@@ -170,12 +204,12 @@ class Maze(gym.Env):
             self.goal_state = np.copy(self.board)
             self.goal_state[config.n_actions - 1] = 1.0
 
-        elif config.env_name == 'square_with_walls':
+        elif config.env_id == 'square_with_walls':
             if transition_table is None:
                 self.transition_table = [(-1, 0), (0, 1), (1, 0), (0, -1)]
             else:
                 self.transition_table = transition_table
-            print(config.env_name)
+            print(config.env_id)
             assert config.n_actions == len(self.transition_table), 'n_actions must match n_transitions'
             self.action_space = spaces.Discrete(config.n_actions)
             self.observation_space = spaces.Box(low=0.0,
@@ -203,18 +237,18 @@ class Maze(gym.Env):
         self.np_random, np_seed = seeding.np_random(seed)
 
     def get_action_meanings(self) -> None:
-        if self.config.env_name == 'square_full_access':
+        if self.config.env_id == 'square_full_access':
             return ['GO TO FIELD <ACTION>']
-        elif self.config.env_name == 'square_with_walls':
+        elif self.config.env_id == 'square_with_walls':
             if self.config.n_actions == 4:
                 return ['UP', 'RIGHT', 'DOWN', 'LEFT']
             if self.config.n_actions == 5:
                 return ['NOOP', 'UP', 'RIGHT', 'DOWN', 'LEFT']
 
     def _generate_maze(self) -> ListType:
-        if self.config.env_name == 'square_full_access':
+        if self.config.env_id == 'square_full_access':
             self.board = np.zeros(self.config.n_actions)
-        elif self.config.env_name == 'square_with_walls':
+        elif self.config.env_id == 'square_with_walls':
             self.board = np.zeros((self.config.height+2, self.config.height+2))
             self.board[1:self.config.height+1, 1:self.config.height+1] = 1
             #self.board[1:self.config.height+1, 1:self.config.height+1] = rnd.choice([0, 1], (self.config.height, self.config.height), p = (.2, .8))
@@ -226,13 +260,13 @@ class Maze(gym.Env):
 
     def reset(self) -> Tuple[ListType, bool]:
         self.steps = 0
-        if self.config.env_name == 'square_full_access':
+        if self.config.env_id == 'square_full_access':
             self.current_state = np.copy(self.board)
             self.current_position = self.initial_idx
             self.current_state[self.current_position] = 1.0
             state = self.current_state
 
-        if self.config.env_name == 'square_with_walls':
+        if self.config.env_id == 'square_with_walls':
             self.current_state = np.zeros((self.config.height, self.config.height))
             self.current_position = self.initial_idx
             self.current_state[self.current_position] = 1.0
@@ -243,12 +277,12 @@ class Maze(gym.Env):
     def step(self, action: Union[int, TensorType]) -> Tuple[ListType, ListType, bool]:
         assert self.steps >= 0
 
-        if self.config.env_name == 'square_full_access':
+        if self.config.env_id == 'square_full_access':
             self.current_state = np.copy(self.board)
             self.current_state[action] = 1
             state = self.current_state
 
-        if self.config.env_name == 'square_with_walls':
+        if self.config.env_id == 'square_with_walls':
             self.current_state[self.current_position] -= 1.0
             dx = self.transition_table[action]
             if self.board[__add__(__add__(self.current_position, (1, 1)), dx)]:
