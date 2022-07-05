@@ -1,10 +1,8 @@
 # Reinforcement Learning on Latent Manifolds
 
-PyTorch code for basic functionalities. Theoretical background described [here](state_rl_basics/blob/main/log.pdf)
+PyTorch code for basic functionalities. Theoretical background described [here](https://github.com/sebvoigtlaender/state_rl_basics/blob/main/log.pdf)
 
 ## Package Description
-
-Testing on `HalfCheetah-v2` and `Walker2d-v2`:
 
 ![](images/results.png)
 
@@ -16,7 +14,7 @@ Basic usage is
 $ python main.py
 ```
 
-See [arguments.py](state_rl_basics/arguments.py) for available parameters, and set parameters using e.g.:
+See [arguments.py](https://github.com/sebvoigtlaender/state_rl_basics/blob/main/arguments.py) for available parameters, and set parameters using e.g.:
 
 ```bash
 $ python main.py -batch-size=16
