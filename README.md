@@ -1,6 +1,6 @@
 # Reinforcement Learning on Latent Manifolds
 
-PyTorch code for basic functionalities. Theoretical background described [here](https://github.com/sebvoigtlaender/state_rl_basics/blob/main/log.pdf)
+PyTorch code for basic functionalities. Theoretical background described [here](https://github.com/sebvoigtlaender/state_rl_basics/blob/main/background.pdf)
 
 ## Package Description
 
