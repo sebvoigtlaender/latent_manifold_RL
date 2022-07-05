@@ -26,7 +26,7 @@ In this interpretation that the variational free energy optimizes for the least 
 # Artificial Intelligence
 
 ## Parameterizing Nonlinear Dynamical Systems
-Discretizing the dynamics equation in nonlinear dynamical systems yields the update equation $\Deltax = g(x, u)$. When the mapping $g$ is parametrized by a sufficiently expressive artificial neural network, it is a universal finite state machine approximator called recurrent neural network (RNN), and can therefore in principle approximate any nonlinear  neural computation.
+Discretizing the dynamics equation in nonlinear dynamical systems yields the update equation $\Delta x = g(x, u)$. When the mapping $g$ is parametrized by a sufficiently expressive artificial neural network, it is a universal finite state machine approximator called recurrent neural network (RNN), and can therefore in principle approximate any nonlinear  neural computation.
 
 ## Training Algorithms
 The standard training algorithm for RNNs is backpropagation through time (BPTT), which works by storing past inputs $u$ and states $x$ in a register to compute the gradient with respect to the loss $L$. After updating the networks weights the register is cleared. State machine approximators are notoriously hard to train due to gradient instability introduced by high or low spectral radii of their recurrent weight matrices, costly storage and computational requirements, and vast state spaces induced by their recurrent architecture.
