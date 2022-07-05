@@ -54,7 +54,7 @@ Reinforcement Learning and Control have deep connections to Probabilistic Infere
 I'd argue that it is possible to train finite state machine approximators that approximate neural function by reframing learning a state transition function g in latent state space as an active inference or reinforcement learning problem.
 
 ## Basic Terminology
-One can reframe learning dynamics on low dimensional point-cloud manifolds as an active inference problem in latent state space as follows. Denote the latent state as $x$, and the posterior over current state conditioned on past state as $P(x_t | x_{t – 1})$. Substitute the action $a$ by the index $i$ indexing the state vector $x$ or the latent state transition $\Delta x$. Replace the reward $r$ by any performance metric $y$, e.g. the loss $L$, or the fitness $F$.
+One can reframe learning dynamics on low dimensional point-cloud manifolds as an active inference problem in latent state space as follows. Denote the latent state as $x$, and the posterior over current state conditioned on past state as $P(x_t | x_{t-1})$. Substitute the action $a$ by the index $i$ indexing the state vector $x$ or the latent state transition $\Delta x$. Replace the reward $r$ by any performance metric $y$, e.g. the loss $L$, or the fitness $F$.
 The performance metric can be interpreted as and observable signal from the 'environment'. Active inference is of course not limited to sensory data, but works with general observables, e.g. rewards $r$.
 
 ## State Transitions in Latent Space
@@ -63,8 +63,8 @@ The distribution over sensory input becomes $P(L | x)$ and the posterior (i.e. a
 ## Optimization
 I think there is a number of ways how one can cast learning stochastic latent dynamics as an (active) inference and reinforcement learning problem.
 One particularly appealing approach might be learning latent state dynamics by optimizing the variational free energy as
-$$F[Q, L] = D_\mathrm(KL)[Q(\Delta x) | P(\Delta x)] – Q(\Delta x)[logP(–L | \Delta x_t, x_{t – 1})]$$
-where $Q$ is a parametric approximation to the exact or optimal latent dynamics distribution $P$ (time indices $t$ and conditional dependencies on past states $xt – 1$ omitted wherever possible for better readability).
+$$F\[Q, L\] = D_\mathrm{KL}\[Q(\Delta x) | P(\Delta x)\] – Q(\Delta x)\[\mathrm{log} P(–L | \Delta x_t, x_{t-1})\]$$
+where $Q$ is a parametric approximation to the exact or optimal latent dynamics distribution $P$ (time indices $t$ and conditional dependencies on past states $xt-1$ omitted wherever possible for better readability).
 The first term connects active inference in latent space to population geometry by implicitly constraining the geometry of the manifold on which the latent state lives, while the second term controls the optimality of the internal dynamics for optimizing the loss (or any other available performance metric).
 
 ## Latent State Control
