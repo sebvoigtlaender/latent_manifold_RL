@@ -71,7 +71,7 @@ The first term connects active inference in latent space to population geometry 
 Navigating latent space becomes a control problem with an internal state controller $Q_w$ as the transition policy with parameters $w$.  There is a vast body of literature that explores this idea from different angles, I might summarize it in the future.
 In contrast to conventional reinforcement learning problems, this approach does not suffer from two crucial disadvantages:
 1. The reward distribution is known, at least to some degree. We argue that optimizing variational free energy equates learning a model of the 'internal environment' concurrent with a transition control policy by optimizing the expected $\mathrm{log}P(-L | d x_t, x_{t-1})$. As opposed to reinforcement learning problems, this is possible because the loss distribution is differentiable with respect to $x$.
-2. The joint environment dynamics $P()$ are neither known nor differentiable with respect to the action $a$ in conventional reinforcement learning, whereas the latent space dynamics $P( \Delta x_t, x_{t-1}, L_{t-1})$ have a well-defined gradient with respect to $d x$ and $x$.
+2. The joint environment dynamics $P()$ are neither known nor differentiable with respect to the action $a$ in conventional reinforcement learning, whereas the latent space dynamics $P( \Delta x_t, x_{t-1}, L_{t-1})$ have a well-defined gradient with respect to $ \Delta x$ and $x$.
 This begs the question if it is worthwhile making matters more complicated: one could simply use any customary Q-learning of policy gradient algorithm to train the internal state controller, but most of them a built around dealing with of non differentiability of the environment dynamics.
 
 Schematically, I envision the following strategy:
