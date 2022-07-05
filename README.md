@@ -4,7 +4,7 @@ PyTorch code for basic functionalities. Theoretical background described [here](
 
 ## Package Description
 
-![](images/results.png)
+![](images/manifold.png)
 
 ### Training
 
