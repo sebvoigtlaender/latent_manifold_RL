@@ -54,24 +54,24 @@ Reinforcement Learning and Control have deep connections to Probabilistic Infere
 I'd argue that it is possible to train finite state machine approximators that approximate neural function by reframing learning a state transition function g in latent state space as an active inference or reinforcement learning problem.
 
 ## Basic Terminology
-One can reframe learning dynamics on low dimensional point-cloud manifolds as an active inference problem in latent state space as follows. Denote the latent state as $x$, and the posterior over current state conditioned on past state as $P(x_t | x_{t – 1})$. Substitute the action $a$ by the index $i$ indexing the state vector $x$ or the latent state transition $\mathrm(d)x$. Replace the reward $r$ by any performance metric $y$, e.g. the loss $L$, or the fitness $F$.
+One can reframe learning dynamics on low dimensional point-cloud manifolds as an active inference problem in latent state space as follows. Denote the latent state as $x$, and the posterior over current state conditioned on past state as $P(x_t | x_{t – 1})$. Substitute the action $a$ by the index $i$ indexing the state vector $x$ or the latent state transition $\Delta x$. Replace the reward $r$ by any performance metric $y$, e.g. the loss $L$, or the fitness $F$.
 The performance metric can be interpreted as and observable signal from the 'environment'. Active inference is of course not limited to sensory data, but works with general observables, e.g. rewards $r$.
 
 ## State Transitions in Latent Space
-The distribution over sensory input becomes $P(L | x)$ and the posterior (i.e. a latent policy) becomes $P(\mathrm(d)x | x)$ or $P(i | x)$. To transition the state we need an update rule, in the simplest case $x + \mathrm(d)x$. This update rule is fully general since it is a parametrization of the general form of a stochastic ordinary differential equation. Updating the latent state thus becomes an active process executed by an internal agent that can be optimized by all available reinforcement learning algorithms.
+The distribution over sensory input becomes $P(L | x)$ and the posterior (i.e. a latent policy) becomes $P(\Delta x | x)$ or $P(i | x)$. To transition the state we need an update rule, in the simplest case $x + \Delta x$. This update rule is fully general since it is a parametrization of the general form of a stochastic ordinary differential equation. Updating the latent state thus becomes an active process executed by an internal agent that can be optimized by all available reinforcement learning algorithms.
 
 ## Optimization
 I think there is a number of ways how one can cast learning stochastic latent dynamics as an (active) inference and reinforcement learning problem.
 One particularly appealing approach might be learning latent state dynamics by optimizing the variational free energy as
-$$F[Q, L] = D_\mathrm(KL)[Q(\mathrm(d)x) | P(\mathrm(d)x)] – Q(\mathrm(d)x)[logP(–L | \mathrm(d)x_t, x_{t – 1})]$$
+$$F[Q, L] = D_\mathrm(KL)[Q(\Delta x) | P(\Delta x)] – Q(\Delta x)[logP(–L | \Delta x_t, x_{t – 1})]$$
 where $Q$ is a parametric approximation to the exact or optimal latent dynamics distribution $P$ (time indices $t$ and conditional dependencies on past states $xt – 1$ omitted wherever possible for better readability).
 The first term connects active inference in latent space to population geometry by implicitly constraining the geometry of the manifold on which the latent state lives, while the second term controls the optimality of the internal dynamics for optimizing the loss (or any other available performance metric).
 
 ## Latent State Control
 Navigating latent space becomes a control problem with an internal state controller $Q_w$ as the transition policy with parameters $w$.  There is a vast body of literature that explores this idea from different angles, I might summarize it in the future.
 In contrast to conventional reinforcement learning problems, this approach does not suffer from two crucial disadvantages:
-1. The reward distribution is known, at least to some degree. We argue that optimizing variational free energy equates learning a model of the 'internal environment' concurrent with a transition control policy by optimizing the expected $\mathrm(log)P(–L | \mathrm(d)x_t, x_{t-1})$. As opposed to reinforcement learning problems, this is possible because the loss distribution is differentiable with respect to $dx$.
-2. The joint environment dynamics $P(h_t, a_t, h_{t-1})$ are neither known nor differentiable with respect to the action a in conventional reinforcement learning, whereas the latent space dynamics $P(\Deltax_t, x_{t-1}, L_{t-1})$ have a well-defined gradient with respect to $\mathrm(d)x$ and $x$.
+1. The reward distribution is known, at least to some degree. We argue that optimizing variational free energy equates learning a model of the 'internal environment' concurrent with a transition control policy by optimizing the expected $\mathrm(log)P(–L | \Delta x_t, x_{t-1})$. As opposed to reinforcement learning problems, this is possible because the loss distribution is differentiable with respect to $dx$.
+2. The joint environment dynamics $P(h_t, a_t, h_{t-1})$ are neither known nor differentiable with respect to the action a in conventional reinforcement learning, whereas the latent space dynamics $P(\Deltax_t, x_{t-1}, L_{t-1})$ have a well-defined gradient with respect to $\Delta x$ and $x$.
 This begs the question if it is worthwhile making matters more complicated: one could simply use any customary Q-learning of policy gradient algorithm to train the internal state controller, but most of them a built around dealing with of non differentiability of the environment dynamics.
 
 Schematically, I envision the following strategy:
@@ -80,7 +80,7 @@ Schematically, I envision the following strategy:
 3. Use of the existence of gradients of the latent space dynamics with respect to states and transitions to supplement conventional algorithms with gradient and environment dynamics that is usually inaccessible and has to be learned separately.
 
 ## Control and Population Geometry
-In contrast to reinforcement learning, there is no immutable 'ground truth' dynamics to be learned. This means that one essentially has to pick suitable prior ground truth dynamics. Typically, Gaussian priors (VAE, for sequential input Stochastic Latent Actor-Critic) are, used but we could utilize the KL Divergence term to incorporate prior knowledge about locally optimal behavior or desirable geometric structure on Q. Some ideas to be explored further include: $P(\mathrm(d)x)$ is
+In contrast to reinforcement learning, there is no immutable 'ground truth' dynamics to be learned. This means that one essentially has to pick suitable prior ground truth dynamics. Typically, Gaussian priors (VAE, for sequential input Stochastic Latent Actor-Critic) are, used but we could utilize the KL Divergence term to incorporate prior knowledge about locally optimal behavior or desirable geometric structure on Q. Some ideas to be explored further include: $P(\Delta x)$ is
 1. locally optimal, as found by exhaustive search over all available or the most promising set of transitions 
 2. obtained by a search procedure in trees (MCTS, [interesting recent paper on planning in large decision trees under limited resources](https://www.nature.com/articles/s41598-022-13862-2)) or on graphs that represent a good transition strategy along the surface of the manifold
 3. obtained by another exploration strategy used in reinforcement learning
