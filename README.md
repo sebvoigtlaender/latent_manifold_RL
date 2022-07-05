@@ -70,7 +70,7 @@ Schematically, I envision the following strategy:
 3. Use of the existence of gradients of the latent space dynamics with respect to states and transitions to supplement conventional algorithms with gradient and environment dynamics that is usually inaccessible and has to be learned separately.
  Control and Population Geometry. In contrast to reinforcement learning, there is no immutable 'ground truth' dynamics to be learned. This means that one essentially has to pick suitable prior ground truth dynamics. Typically, Gaussian priors (VAE, for sequential input Stochastic Latent Actor-Critic) are, used but we could utilize the KL Divergence term to incorporate prior knowledge about locally optimal behavior or desirable geometric structure on Q. Some ideas to be explored further include: P(dx) is
 1. locally optimal, as found by exhaustive search over all available or the most promising set of transitions 
-2. obtained by a search procedure in trees (MCTS, interesting recent paper on planning in large decision trees under limited resources) or on graphs that represent a good transition strategy along the surface of the manifold
+2. obtained by a search procedure in trees (MCTS, [interesting recent paper on planning in large decision trees under limited resources](https://www.nature.com/articles/s41598-022-13862-2)) or on graphs that represent a good transition strategy along the surface of the manifold
 3. obtained by another exploration strategy used in reinforcement learning
 4. parametrized by a value function v or action-value function q and learned alongside Q 5. carefully chosen to satisfy specific geometric properties known to result in 'useful' dynamics, e.g. properties of attractor manifold, transition sparsity, etc.
   
