@@ -20,6 +20,12 @@ def get_actor_critic_config(args: MutableMapping[str, Any]) -> Mapping[str, Any]
     config.discrete: action continuous or discrete
     config.k_B: distribution temperature for sampling
     config.stochastic: action sampled stochastically or greedily
+
+    Args: 
+        args: non-tunable hyperparameters
+
+    Returns: 
+        config: non-tunable actor critic hyperparameters
     '''
 
     parser = argparse.ArgumentParser()
@@ -64,6 +70,7 @@ class Core(pt.nn.Module):
                  n_layers: int,
                  act_fn: Optional[str] = 'relu',
                  bias: Optional[bool] = True) -> None:
+
         super().__init__()
         self.act_fn = act_fn
         self.input_layer = pt.nn.Linear(n_input_neurons, n_hidden_neurons, bias = bias)
@@ -84,6 +91,10 @@ class ActorCritic(pt.nn.Module):
 
     '''
     Configurable actor critic with fully connected core
+
+    config.stochastic = True: transition policy acts stochastically
+    config.discrete = True: transition is discrete, in most cases the policy then returns the index a = idx
+                            which is used to pick a transition dx from the transition table
     '''
 
     def __init__(self, config: MutableMapping[str, Any]) -> None:
@@ -138,6 +149,12 @@ class Reservoir(pt.nn.Module):
     If this not the case, then either 'allocate' a scalar dx to a scalar state, or 'allocate' a scalar dx to a vector x at index idx -
     in this case the indices range over the length of the vector x.
     If the indices range over fixed transitions, no explicit dx is needed and idx collects the updates from a user defined table of transitions.
+
+    Keep in mind that this only covers the most simple case where the update is x + dx.
+    Since the actor can in principle parametrize an arbitrary (sufficiently well-behaved) dynamical system,
+    the update rule is perfectly general and allows us to hinder or enable flow of gradient information
+    through the reservoir, hence the term.
+    In the most general case the reservoir is a neural network T(x, a), similar to the update rule in g flow nets
     '''
 
     def __init__(self,
@@ -160,6 +177,15 @@ class Reservoir(pt.nn.Module):
                state_transition: Optional[TensorType] = None,
                idx: Optional[pt.LongTensor] = None,
                act_fn: Optional[str] = 'id') -> Tuple[TensorType, TensorType]:
+
+        '''
+        Args: 
+            x: latent state
+            state_transition: state transition dx, optional since an index suffices in the discrete case
+                              if a transition table is given
+            idx: index which picks a transition from the transition table
+            act_fn: activation function for the state update
+        '''
         
         with pt.no_grad():
 

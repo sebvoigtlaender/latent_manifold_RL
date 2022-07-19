@@ -106,6 +106,12 @@ class Replay_Buffer():
                  capacity: int = int(1e3)) -> None:
 
         '''
+
+        Args:
+            u_size: length of external input vector
+            x_size: length of latent state vector
+            capacity: replay buffer capacity
+
         idx is the position up to which the replay buffer is filled
         size is the current length of the buffer
         u is the container for external input

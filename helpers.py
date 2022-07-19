@@ -22,6 +22,15 @@ def get_p_action_target(args: MutableMapping[str, Any],
 
     '''
     If transition_table is given, calculate target for distribution over actions or state updates dx
+
+    Args: 
+        args: non-tunable hyperparameters
+        x: latent state
+        state_target: target latent state
+        transition_table: tensor containing all possible transitions dx
+
+    Returns:
+       p_action_target: probability distribution over all possible actions with mode at the locally optimal transition  
     '''
 
     with pt.no_grad(): 
@@ -31,6 +40,7 @@ def get_p_action_target(args: MutableMapping[str, Any],
         p_action_target[range(args.batch_size), target_idx] = 1
         
     return p_action_target
+
 
 def value_act(args: MutableMapping[str, Any],
           u: TensorType,
@@ -43,6 +53,19 @@ def value_act(args: MutableMapping[str, Any],
     '''
     If transition_table is given, calculate target state update dx
     based on the locally optimal transition as measured by state value
+
+    Args: 
+        args: non-tunable hyperparameters
+        u: external input
+        x: latent state
+        state_target: target latent state
+        transition_table: tensor containing all possible transitions dx
+        epsilon: probability of random exploration
+        mode: keyword that characterizes if optimal index is to be found by minimizing
+              or maximizing or else, currently not implemented
+
+    Returns: 
+        action_idx: index used to pick action dx from transition table
     '''
 
     with pt.no_grad():
@@ -62,11 +85,16 @@ def value_act(args: MutableMapping[str, Any],
 
     return action_idx
 
+
 def train_actor_critic(args: Mapping[str, Any], 
                        replay_buffer: Any) -> None:
 
     '''
     Basic actor critic training algorithm
+
+    Args: 
+        args: non-tunable hyperparameters
+        replay_buffer: basic reinforcement learning replay buffer
     '''
 
     u, x, d_loss, dx, done = replay_buffer.spl(args.batch_size)

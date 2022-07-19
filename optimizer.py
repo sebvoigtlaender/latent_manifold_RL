@@ -22,6 +22,11 @@ class CoreOptimizer(pt.optim.Optimizer):
     positive learning rates for gradient ascend.
     During each gradient step the gradient and be scaled by
     scaling_factor, as required for gradient discounting.
+
+    The gradient can be accumulated across multiple time steps, if needed.
+    If self.args.grad == 'sparse', the gradient is calculated only along the path
+    hrough state space, if self.args.grad == 'dense', the gradient is densely for
+    every possible action
     '''
 
     def __init__(self, parameters: Iterable,
