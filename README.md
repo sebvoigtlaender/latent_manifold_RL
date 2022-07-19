@@ -1,6 +1,10 @@
 # Reinforcement Learning on Latent Manifolds
 
-PyTorch code for basic functionalities. Theoretical background described [here](https://github.com/sebvoigtlaender/state_rl_basics/blob/main/background.pdf)
+PyTorch code for foundational experiments for learning state transition policies on latent manifolds.
+The theoretical background for the experiments, drawing from systems and computational neuroscience as well as recent developments in artificial intelligence, is described in more detail [here](https://github.com/sebvoigtlaender/state_rl_basics/blob/main/background.pdf).
+In short, we propose that one can reframe learning dynamical systems in latent space, conventionally done with a recurrent neural network, whose architecture and training algorithm depends on the specifics of the task, in the language of reinforcement learning. From this perspective an internal stage transition is understood as an action chosen by a policy acting on latent state variables, which is trained by using modified versions of conventional policy gradient algorithms.
+The agent is tasked with learning the dynamics on a latent manifold, with specific constraints on the dynamics being imposed by using an optimization target either obtained by local search around the path in state space or by more sophisticated methods derived from variational free energy objectives.
+In principle this allows performing temporal credit assignment by using value functions or more sophisticated methods for value transport without the need to do counterfactual reasoning in terms of partial derivatives along trajectories through state space, as conventionally done with backpropagation through time.
 
 ## Package Description
 
@@ -36,13 +40,7 @@ $ python main.py
 See [arguments.py](https://github.com/sebvoigtlaender/state_rl_basics/blob/main/arguments.py) for available parameters, and set parameters using e.g.:
 
 ```bash
-$ python main.py -batch-size=16
+$ python main.py --batch-size=16
 ```
 
 A run directory will be created in `runs/` containing TensorBoard metrics.
-
-### Tests
-
-Unit tests will follow.
-
-### Lessons learned
