@@ -48,4 +48,4 @@ $ python main.py --batch-size=16
 
 A run directory will be created in `runs/` containing TensorBoard metrics, e.g. the training loss on the toggle task: 
 
-![](https://github.com/sebvoigtlaender/latent_manifold_RL/tree/main/images/toggle_loss.png) 
+![](images/toggle_loss.png) 
