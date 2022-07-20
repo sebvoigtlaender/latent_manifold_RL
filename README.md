@@ -48,4 +48,10 @@ $ python main.py --batch-size=16
 
 A run directory will be created in `runs/` containing TensorBoard metrics, e.g. the training loss on the toggle task: 
 
-![](images/toggle_loss.png) 
+![](images/toggle_loss.png)
+
+You can access the TensorBoard metrics by using
+
+```bash
+$ tensorboard --logdir=Documents/
+```
